@@ -24,9 +24,14 @@ npm run compile
 npm run test
 ```
 
+Checks:
++ .env file
+
+
 Files:
 
-
++ **contracts/MyToken.sol**: ERC20Votes token
++ **contracts/TokenizedBallot.sol**: Custom Voting Contract
 
 | Unique id | Discord username           |
 | --------- | -------------------------- |
