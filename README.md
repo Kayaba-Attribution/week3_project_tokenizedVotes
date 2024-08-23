@@ -1,15 +1,5 @@
 ### Tokenized Votes Weekend Project
 
-| Unique id | Discord username           |
-| --------- | -------------------------- |
-| ZvieX3    | @Dennis Kim                |
-| 64tSCL    | @Zarq                      |
-| zAY7H0    | @Juan_Gomez                |
-| sS1JR2    | @intentions                |
-| WPQzqk    | @Nguyen                    |
-| CSNhKJ    | @Rita Alfonso / Alfonso Tech |
-
-
 
 ### Week 3 Project Plan:
 
@@ -22,4 +12,30 @@
     + castingVote: @Rita Alfonso / Alfonso Tech
     + checkingVotePower: @Dennis Kim
     + queryingResults @Dennis Kim
+
+## Getting Started
+Local copy setup:
+
+```bash
+git clone https://github.com/Kayaba-Attribution/week3_project_tokenizedVotes
+cd week3_project_tokenizedVotes
+npm i
+npm run compile
+npm run test
+```
+
+Files:
+
+
+
+| Unique id | Discord username           |
+| --------- | -------------------------- |
+| ZvieX3    | @Dennis Kim                |
+| 64tSCL    | @Zarq                      |
+| zAY7H0    | @Juan_Gomez                |
+| sS1JR2    | @intentions                |
+| WPQzqk    | @Nguyen                    |
+| CSNhKJ    | @Rita Alfonso / Alfonso Tech |
+
+
 
