@@ -1,7 +1,15 @@
+
+
+
 ### Week 3 Project Things to do:
 
-+ Complete the contracts
+Write smart contract
+Write test cases: @Juan_Gomez
+Deploy contract
+Deploy scripts:
 
-Develop and run scripts for “TokenizedBallot.sol”
-+ give voting tokens
-+ delegating voting power
+giveVotingTokens: @Nguyen
+delegateVotingPower: @intentions
+castingVote: @Rita Alfonso / Alfonso Tech
+checkingVotePower: @Dennis Kim
+queryingResults @Dennis Kim
