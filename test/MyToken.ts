@@ -28,8 +28,8 @@ async function waitForTransactionSuccess(publicClient: any, txHash: any) {
   return receipt;
 }
 
-describe("MyToken Tokenized Votes", async () => {
-  describe("Tokenized Votes", async () => {
+describe("MyToken", async () => {
+  describe("ERC20 Functionality", async () => {
     it("uses a valid ERC20 as payment token", async () => {
       const { myTokenContract } = await loadFixture(deployContractFixture);
       // check basic ERC20 functions
@@ -44,11 +44,15 @@ describe("MyToken Tokenized Votes", async () => {
       expect(symbol).to.equal("MTK");
       expect(decimals).to.equal(18);
     });
+  });
+
+  describe("Minting", async () => {
     it("mint fails if not called by owner", async () => {
       const { myTokenContract, acc1 } = await loadFixture(deployContractFixture);
       await expect(myTokenContract.write.mint([acc1.account.address, MINT_VALUE], { account: acc1.account }))
         .to.be.rejected;
     });
+
     it("mint MINT_VALUE tokens to an account", async () => {
       const { myTokenContract, publicClient, acc1 } = await loadFixture(deployContractFixture);
       const balanceBefore = await myTokenContract.read.balanceOf([acc1.account.address]);
@@ -60,22 +64,26 @@ describe("MyToken Tokenized Votes", async () => {
       const balanceAfter = await myTokenContract.read.balanceOf([acc1.account.address]);
       expect(balanceAfter).to.equal(balanceBefore + MINT_VALUE);
     });
+  });
 
+  describe("Voting Power", async () => {
     it("Voting power is 0 without delegation", async () => {
       const { myTokenContract, acc1 } = await loadFixture(deployContractFixture);
       const votes = await myTokenContract.read.getVotes([acc1.account.address]);
       expect(votes).to.equal(0n);
     });
 
-    // it.only("Voting without voting power should fail", async () => {
-    //   const { myTokenContract, acc1, acc2 } = await loadFixture(deployContractFixture);
-    //   const votingPower = await myTokenContract.read.getVotes([acc2.account.address]);
-    //   console.log("votingPower", votingPower);
-    //   await expect(myTokenContract.write.vote([0], 
-    //     { account: acc2.account }
-    //   )).to.be.rejected;
-    // });
+    it("Voting without voting power should fail", async () => {
+      const { myTokenContract, acc1, acc2 } = await loadFixture(deployContractFixture);
+      const votingPower = await myTokenContract.read.getVotes([acc2.account.address]);
 
+      await expect(myTokenContract.write.vote([0], 
+        { account: acc2.account }
+      )).to.be.rejected;
+    });
+  });
+
+  describe("Delegation", async () => {
     it("Self delegation and check voting power", async () => {
       const { myTokenContract, publicClient, acc1 } = await loadFixture(deployContractFixture);
       // Mint some tokens
@@ -85,7 +93,6 @@ describe("MyToken Tokenized Votes", async () => {
       // Checking vote power
       const votesBefore = await myTokenContract.read.getVotes([acc1.account.address]);
       expect(votesBefore).to.equal(0n);
-      console.log("votesBefore", votesBefore);
 
       // Self delegation transaction
       const delegateTx = await myTokenContract.write.delegate([acc1.account.address], {
@@ -95,11 +102,12 @@ describe("MyToken Tokenized Votes", async () => {
 
       // Checking vote power
       const votesAfter = await myTokenContract.read.getVotes([acc1.account.address]);
-      console.log("votesAfter", votesAfter);
       expect(votesAfter).to.equal(MINT_VALUE);
     });
+  });
 
-    it("Acc 1 transfers MINT_VALUE/2 tokens to Acc 2", async () => {
+  describe("Token Transfer and Voting Power", async () => {
+    it("Voting power is decreased on transfer & receiver has 0 voting power", async () => {
       const { myTokenContract, publicClient, acc1, acc2 } = await loadFixture(deployContractFixture);
       // Mint some tokens
       const mintTx = await myTokenContract.write.mint([acc1.account.address, MINT_VALUE]);
@@ -128,7 +136,5 @@ describe("MyToken Tokenized Votes", async () => {
       const votes2AfterTransfer = await myTokenContract.read.getVotes([acc2.account.address]);
       expect(votes2AfterTransfer).to.equal(0n);
     });
-
-    // TODO: Add test for past votes w getBlockNumber
-  })
+  });
 })

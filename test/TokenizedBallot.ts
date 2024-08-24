@@ -22,15 +22,12 @@ const PROPOSALS = ["Proposal 1", "Proposal 2", "Proposal 3"];
 
 async function deployContractFixture() {
     await client.setLoggingEnabled(true) // enable logging
-    const isAutomining = await client.getAutomine()
-    console.log(isAutomining)
-
+    //const isAutomining = await client.getAutomine()
     const publicClient = client;
 
     const myTokenContract = await viem.deployContract("MyToken");
 
     const [deployer, acc1, acc2] = await viem.getWalletClients();
-    console.log(deployer.account.address)
     const targetBlockNumber = await client.getBlockNumber() + 100n;
 
     const ballotContract = await viem.deployContract("TokenizedBallot",
@@ -63,7 +60,7 @@ async function waitForTransactionSuccess(publicClient: any, txHash: any) {
 }
 
 describe("TokenizedBallot", async () => {
-    describe("when the contract is deployed", async () => {
+    describe("Deployment", async () => {
         // empty
         it("has the provided proposals", async () => {
             const { ballotContract } = await loadFixture(deployContractFixture);
@@ -107,94 +104,161 @@ describe("TokenizedBallot", async () => {
         });
     });
 
-    it("allows voting with sufficient voting power", async () => {
-        const { ballotContract, myTokenContract, publicClient, acc1, targetBlockNumber } = await loadFixture(deployContractFixture);
+    describe("Voting", async () => {
+        it("allows voting with sufficient voting power", async () => {
+            const { ballotContract, myTokenContract, publicClient, acc1, targetBlockNumber } = await loadFixture(deployContractFixture);
 
-        // Get acc1 voting power
-        const votes = await myTokenContract.read.getVotes([acc1.account.address]);
-        console.log(votes)
+            // Get acc1 voting power
+            const votes = await myTokenContract.read.getVotes([acc1.account.address]);
 
-        // Mint tokens and self-delegate
-        const mintTx = await myTokenContract.write.mint([acc1.account.address, MINT_VALUE]);
-        await waitForTransactionSuccess(publicClient, mintTx);
+            // Mint tokens and self-delegate
+            const mintTx = await myTokenContract.write.mint([acc1.account.address, MINT_VALUE]);
+            await waitForTransactionSuccess(publicClient, mintTx);
 
-        const delegateTx = await myTokenContract.write.delegate([acc1.account.address], { account: acc1.account });
-        await waitForTransactionSuccess(publicClient, delegateTx);
+            const delegateTx = await myTokenContract.write.delegate([acc1.account.address], { account: acc1.account });
+            await waitForTransactionSuccess(publicClient, delegateTx);
 
-        // Mine blocks
-        await publicClient.mine({
-            blocks: 100,
-        })
+            // Mine blocks
+            await publicClient.mine({
+                blocks: 100,
+            })
 
-        // Vote
-        /**
-         * ERC5805FutureLookup(101, 5)' Version: 2.19.4
-         * 
-         */
-        const voteTx = await ballotContract.write.vote([0n, MINT_VALUE],
-            { account: acc1.account }
-        );
-        await waitForTransactionSuccess(publicClient, voteTx);
+            // Vote
+            /**
+             * ERC5805FutureLookup(101, 5)' Version: 2.19.4
+             * 
+             */
+            const voteTx = await ballotContract.write.vote([0n, MINT_VALUE],
+                { account: acc1.account }
+            );
+            await waitForTransactionSuccess(publicClient, voteTx);
 
-        // Check vote count
-        const proposal = await ballotContract.read.proposals([0n]);
-        expect(proposal[1]).to.equal(MINT_VALUE);
+            // Check vote count
+            const proposal = await ballotContract.read.proposals([0n]);
+            expect(proposal[1]).to.equal(MINT_VALUE);
+        });
+
+        it("prevents voting with insufficient voting power", async () => {
+            const { ballotContract, myTokenContract, publicClient, acc1 } = await loadFixture(deployContractFixture);
+
+            // Mint tokens but do not self-delegate
+            const mintTx = await myTokenContract.write.mint([acc1.account.address, MINT_VALUE]);
+            await waitForTransactionSuccess(publicClient, mintTx);
+
+            // Mine blocks
+            await publicClient.mine({
+                blocks: 100,
+            })
+
+            // Attempt to vote
+            await expect(ballotContract.write.vote([0, MINT_VALUE], { account: acc1.account }))
+                .to.be.rejectedWith("TokenizedBallot: Insufficient voting power");
+        });
+
+        it("prevents voting more than once with full voting power", async () => {
+            const { ballotContract, myTokenContract, publicClient, acc1 } = await loadFixture(deployContractFixture);
+
+            // Mint tokens and self-delegate
+            const mintTx = await myTokenContract.write.mint([acc1.account.address, MINT_VALUE]);
+            await waitForTransactionSuccess(publicClient, mintTx);
+
+            const delegateTx = await myTokenContract.write.delegate([acc1.account.address], { account: acc1.account });
+            await waitForTransactionSuccess(publicClient, delegateTx);
+
+            // Mine blocks
+            await publicClient.mine({
+                blocks: 100,
+            })
+
+            // Vote
+            const voteTx = await ballotContract.write.vote([0n, MINT_VALUE], { account: acc1.account });
+            await waitForTransactionSuccess(publicClient, voteTx);
+
+            // Attempt to vote again
+            await expect(ballotContract.write.vote([0, MINT_VALUE], { account: acc1.account }))
+                .to.be.rejectedWith("TokenizedBallot: Insufficient voting power");
+        });
     });
 
-    it("prevents voting with insufficient voting power", async () => {
-        const { ballotContract, myTokenContract, publicClient, acc1 } = await loadFixture(deployContractFixture);
+    describe("Winner calculation", async () => {
+        it("correctly calculates the winning proposal", async () => {
+            const { ballotContract, myTokenContract, publicClient, acc1, acc2, targetBlockNumber } = await loadFixture(deployContractFixture);
 
-        // Mint tokens but do not self-delegate
-        const mintTx = await myTokenContract.write.mint([acc1.account.address, MINT_VALUE]);
-        await waitForTransactionSuccess(publicClient, mintTx);
+            // Mint tokens and self-delegate
+            const mintTx1 = await myTokenContract.write.mint([acc1.account.address, MINT_VALUE]);
+            await waitForTransactionSuccess(publicClient, mintTx1);
 
-        // Mine blocks
-        await publicClient.mine({
-            blocks: 100,
-        })
+            const mintTx2 = await myTokenContract.write.mint([acc2.account.address, MINT_VALUE]);
+            await waitForTransactionSuccess(publicClient, mintTx2);
 
-        // Attempt to vote
-        await expect(ballotContract.write.vote([0, MINT_VALUE], { account: acc1.account }))
-            .to.be.rejectedWith("TokenizedBallot: Insufficient voting power");
-    });
+            const delegateTx1 = await myTokenContract.write.delegate([acc1.account.address], { account: acc1.account });
+            await waitForTransactionSuccess(publicClient, delegateTx1);
 
-    it("correctly calculates the winning proposal", async () => {
-        const { ballotContract, myTokenContract, publicClient, acc1, acc2, targetBlockNumber } = await loadFixture(deployContractFixture);
+            const delegateTx2 = await myTokenContract.write.delegate([acc2.account.address], { account: acc2.account });
+            await waitForTransactionSuccess(publicClient, delegateTx2);
 
-        // Mint tokens and self-delegate
-        const mintTx1 = await myTokenContract.write.mint([acc1.account.address, MINT_VALUE]);
-        await waitForTransactionSuccess(publicClient, mintTx1);
+            // Mine blocks
+            await publicClient.mine({
+                blocks: 100,
+            })
 
-        const mintTx2 = await myTokenContract.write.mint([acc2.account.address, MINT_VALUE]);
-        await waitForTransactionSuccess(publicClient, mintTx2);
+            // Vote
+            const voteTx1 = await ballotContract.write.vote([0n, MINT_VALUE / 2n], { account: acc1.account });
+            await waitForTransactionSuccess(publicClient, voteTx1);
 
-        const delegateTx1 = await myTokenContract.write.delegate([acc1.account.address], { account: acc1.account });
-        await waitForTransactionSuccess(publicClient, delegateTx1);
+            const voteTx2 = await ballotContract.write.vote([1n, MINT_VALUE], { account: acc2.account });
+            await waitForTransactionSuccess(publicClient, voteTx2);
 
-        const delegateTx2 = await myTokenContract.write.delegate([acc2.account.address], { account: acc2.account });
-        await waitForTransactionSuccess(publicClient, delegateTx2);
+            // Mine blocks
+            await publicClient.mine({
+                blocks: 100,
+            })
 
-        // Mine blocks
-        await publicClient.mine({
-            blocks: 100,
-        })
+            // Check winner
+            const winner = await ballotContract.read.winningProposal();
+            expect(winner).to.equal(1n);
+            const winnerName = hexToString((await ballotContract.read.proposals([winner]))[0], { size: 32 });
+            expect(winnerName).to.equal(PROPOSALS[1]);
+        });
 
-        // Vote
-        const voteTx1 = await ballotContract.write.vote([0n, MINT_VALUE / 2n], { account: acc1.account });
-        await waitForTransactionSuccess(publicClient, voteTx1);
+        it("returns the first proposal in case of a tie", async () => {
+            const { ballotContract, myTokenContract, publicClient, acc1, acc2, targetBlockNumber } = await loadFixture(deployContractFixture);
 
-        const voteTx2 = await ballotContract.write.vote([1n, MINT_VALUE], { account: acc2.account });
-        await waitForTransactionSuccess(publicClient, voteTx2);
+            // Mint tokens and self-delegate
+            const mintTx1 = await myTokenContract.write.mint([acc1.account.address, MINT_VALUE]);
+            await waitForTransactionSuccess(publicClient, mintTx1);
 
-        // Mine blocks
-        await publicClient.mine({
-            blocks: 100,
-        })
+            const mintTx2 = await myTokenContract.write.mint([acc2.account.address, MINT_VALUE]);
+            await waitForTransactionSuccess(publicClient, mintTx2);
 
-        // Check winner
-        const winner = await ballotContract.read.winningProposal();
-        expect(winner).to.equal(1n);
-        const winnerName = hexToString((await ballotContract.read.proposals([winner]))[0], { size: 32 });
-        expect(winnerName).to.equal(PROPOSALS[1]);
+            const delegateTx1 = await myTokenContract.write.delegate([acc1.account.address], { account: acc1.account });
+            await waitForTransactionSuccess(publicClient, delegateTx1);
+
+            const delegateTx2 = await myTokenContract.write.delegate([acc2.account.address], { account: acc2.account });
+            await waitForTransactionSuccess(publicClient, delegateTx2);
+
+            // Mine blocks
+            await publicClient.mine({
+                blocks: 100,
+            })
+
+            // Vote
+            const voteTx1 = await ballotContract.write.vote([0n, MINT_VALUE], { account: acc1.account });
+            await waitForTransactionSuccess(publicClient, voteTx1);
+
+            const voteTx2 = await ballotContract.write.vote([1n, MINT_VALUE], { account: acc2.account });
+            await waitForTransactionSuccess(publicClient, voteTx2);
+
+            // Mine blocks
+            await publicClient.mine({
+                blocks: 100,
+            })
+
+            // Check winner
+            const winner = await ballotContract.read.winningProposal();
+            expect(winner).to.equal(0n);
+            const winnerName = hexToString((await ballotContract.read.proposals([winner]))[0], { size: 32 });
+            expect(winnerName).to.equal(PROPOSALS[0]);
+        });
     });
 });
