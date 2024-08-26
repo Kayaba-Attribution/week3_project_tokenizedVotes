@@ -6,7 +6,8 @@ import {
   parseEther,
   formatEther,
 } from "viem";
-import { abi, bytecode } from "../artifacts/contracts/MyERC20.sol/MyToken.json";
+import { abi, bytecode } from "../artifacts/contracts/MyToken.sol/MyToken.json";
+
 import { sepolia } from "viem/chains";
 import * as dotenv from "dotenv";
 dotenv.config();

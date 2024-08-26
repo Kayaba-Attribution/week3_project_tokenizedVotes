@@ -18,29 +18,31 @@ import * as readlineSync from "readline-sync";
 /// CONSTANTS
 const providerApiKey = process.env.ALCHEMY_API_KEY || "";
 const deployerPrivateKey = process.env.PRIVATE_KEY || "";
-const myERC20TokenContract = "0x5f14f394914e8d081fa4c5b86e58545c211fb06b"; // Figure out how to automatically pull this in
 
-/// GET USER INPUT FUNCTION
-function getUserInputUntilQuit(queryString: string): string[] {
-  const inputs: string[] = [];
-  let continueLoop = true;
+// ? Use args directly to get the proposals and myERC20TokenContract
+// const myERC20TokenContract = "0x5f14f394914e8d081fa4c5b86e58545c211fb06b"; // Figure out how to automatically pull this in
 
-  while (continueLoop) {
-    const userInput = readlineSync.question(
-      queryString + ' (or "n" to quit): '
-    );
+// /// GET USER INPUT FUNCTION
+// function getUserInputUntilQuit(queryString: string): string[] {
+//   const inputs: string[] = [];
+//   let continueLoop = true;
 
-    if (userInput.toLowerCase() === "n") {
-      continueLoop = false;
-      console.log("Exiting the input loop.");
-    } else {
-      inputs.push(userInput);
-      console.log(`Input recorded: ${userInput}`);
-    }
-  }
+//   while (continueLoop) {
+//     const userInput = readlineSync.question(
+//       queryString + ' (or "n" to quit): '
+//     );
 
-  return inputs;
-}
+//     if (userInput.toLowerCase() === "n") {
+//       continueLoop = false;
+//       console.log("Exiting the input loop.");
+//     } else {
+//       inputs.push(userInput);
+//       console.log(`Input recorded: ${userInput}`);
+//     }
+//   }
+
+//   return inputs;
+// }
 // Example usage:
 // const userResponses = getUserInputUntilQuit('Enter a favorite color');
 // console.log('All inputs:', userResponses);
@@ -48,16 +50,27 @@ function getUserInputUntilQuit(queryString: string): string[] {
 /// MAIN FUNCTION
 async function main() {
   /// OBTAIN PROPOSALS FROM USER INPUT OR THROW ERROR
-  const proposals = getUserInputUntilQuit(
-    "Please enter all of the proposals you would like to vote on:"
-  );
-  if (!proposals || proposals.length < 1)
-    throw new Error("Proposals not provided");
+  // const proposals = getUserInputUntilQuit(
+  //   "Please enter all of the proposals you would like to vote on:"
+  // );
+  // if (!proposals || proposals.length < 1)
+  //   throw new Error("Proposals not provided");
   /// - LOG PROPOSALS
+
+  const args = process.argv.slice(2);
+  if (args.length < 4) {
+    throw new Error("Please provide 3 proposals and the ERC20 token contract address");
+  }
+  const proposals = args.slice(0, 3);
+  const myERC20TokenContract = args[3];
+
   console.log("Proposals: ");
   proposals.forEach((element, index) => {
     console.log(`Proposal #${index + 1}: ${element}`);
   });
+  console.log(`ERC20 Token Contract Address: ${myERC20TokenContract}`);
+
+  throw new Error("TEST")
 
   /// CREATE PUBLICCLIENT TO CONNECT TO SEPOLIA TESTNET USING POKT GATEWAY
   console.log("\nConnecting to blockchain with publicClient...")
@@ -115,11 +128,10 @@ async function main() {
     return;
   }
 
-  /// PULL AND READ ALL PROPOSALS FROM OUR DEPLOYED CONTRACT
   console.log("Proposals:");
   for (let index = 0; index < proposals.length; index++) {
     const proposal = (await publicClient.readContract({
-      address: receipt.contractAddress,
+      address: receipt.contractAddress as `0x${string}`,
       abi,
       functionName: "proposals",
       args: [BigInt(index)]
@@ -132,7 +144,7 @@ async function main() {
     console.log("\nChecking Deployer's voting rights...");
     const deployerPubAddress = "0x0165363e7595133D3a538f5dFD85E0b5cf15CF93";
     const deployerVotingRights = await publicClient.readContract({
-      address: myERC20TokenContract,
+      address: myERC20TokenContract as `0x${string}`,
       abi,
       functionName: "getVotes",
       args: [deployerPubAddress]
