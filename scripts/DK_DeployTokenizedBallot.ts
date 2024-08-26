@@ -9,6 +9,14 @@ import {
   abi,
   bytecode,
 } from "../artifacts/contracts/TokenizedBallot.sol/TokenizedBallot.json";
+
+
+// USAGE:
+// npx ts-node --files ./scripts/DK_DeployTokenizedBallot.ts "Proposal1" "Proposal2" "Proposal3" tokenAddress
+
+// Import the abi of the ERC20 token contract
+import { abi as myERC20TokenContractAbi } from "../artifacts/contracts/MyToken.sol/MyToken.json";
+
 import { sepolia } from "viem/chains";
 import * as dotenv from "dotenv";
 dotenv.config();
@@ -47,6 +55,17 @@ const deployerPrivateKey = process.env.PRIVATE_KEY || "";
 // const userResponses = getUserInputUntilQuit('Enter a favorite color');
 // console.log('All inputs:', userResponses);
 
+// ? helper function to wait for transaction success
+async function waitForTransactionSuccess(publicClient: any, txHash: any) {
+  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+  if (!receipt || receipt.status !== "success") {
+      throw new Error(`Transaction failed. Hash: ${txHash}`);
+  }
+
+  return receipt;
+}
+
 /// MAIN FUNCTION
 async function main() {
   /// OBTAIN PROPOSALS FROM USER INPUT OR THROW ERROR
@@ -69,8 +88,6 @@ async function main() {
     console.log(`Proposal #${index + 1}: ${element}`);
   });
   console.log(`ERC20 Token Contract Address: ${myERC20TokenContract}`);
-
-  throw new Error("TEST")
 
   /// CREATE PUBLICCLIENT TO CONNECT TO SEPOLIA TESTNET USING POKT GATEWAY
   console.log("\nConnecting to blockchain with publicClient...")
@@ -140,35 +157,39 @@ async function main() {
     console.log({ index, name, proposal });
   }
 
-    /// CHECK VOTING RIGHTS OF DEPLOYER
-    console.log("\nChecking Deployer's voting rights...");
-    const deployerPubAddress = "0x0165363e7595133D3a538f5dFD85E0b5cf15CF93";
-    const deployerVotingRights = await publicClient.readContract({
-      address: myERC20TokenContract as `0x${string}`,
-      abi,
-      functionName: "getVotes",
-      args: [deployerPubAddress]
-    });
-    console.log(`Deployer has ${deployerVotingRights} of voting tokens`)
-  
-    // /// DEPLOYER SELF-DELEGATES VOTING RIGHTS
-    // const deployerDelegateVotingRights = await deployer.writeContract({
-    //   address: myERC20TokenContract,
-    //   abi,
-    //   functionName: "delegate",
-    //   account: deployerAcct,
-    //   args: ["0x0165363e7595133D3a538f5dFD85E0b5cf15CF93"],
-    // });
-    // console.log(`Deployer has delegated himself voting tokens`)
-  
-    //   /// CHECK VOTING RIGHTS OF DEPLOYER
-    //   const deployerVotingRightsAfter = await publicClient.readContract({
-    //     address: myERC20TokenContract,
-    //     abi,
-    //     functionName: "getVotes",
-    //     args: [deployerPubAddress, pastBlockNumber],
-    //   });
-    //   console.log(`Deployer has ${deployerVotingRightsAfter} of voting tokens`)
+  /// CHECK VOTING RIGHTS OF DEPLOYER
+  console.log("\nChecking Deployer's voting rights...");
+  const deployerVotingRights = await publicClient.readContract({
+    address: myERC20TokenContract as `0x${string}`,
+    abi: myERC20TokenContractAbi,
+    functionName: "getVotes",
+    args: [deployer.account.address]
+  });
+  console.log(`Deployer has ${deployerVotingRights} of voting tokens`)
+
+  /// DEPLOYER SELF-DELEGATES VOTING RIGHTS
+  const deployerDelegateVotingRights = await deployer.writeContract({
+    address: myERC20TokenContract as `0x${string}`,
+    abi: myERC20TokenContractAbi,
+    functionName: "delegate",
+    account: deployerAcct,
+    args: [deployer.account.address], 
+  });
+  console.log(`Deployer has delegated himself voting tokens`)
+
+  await waitForTransactionSuccess(publicClient, deployerDelegateVotingRights);
+
+
+  // ? the abi you are using is the abi of the TokenizedBallot contract, not the ERC20 contract
+  // ? thus the error 'Function "getVotes" not found on ABI'.
+  // CHECK VOTING RIGHTS OF DEPLOYER
+  const deployerVotingRightsAfter = await publicClient.readContract({
+    address: myERC20TokenContract as `0x${string}`,
+    abi: myERC20TokenContractAbi,
+    functionName: "getVotes",
+    args: [deployer.account.address],
+  });
+  console.log(`Deployer has ${deployerVotingRightsAfter} of voting tokens`)
 }
 
 main().catch((error) => {

@@ -13,6 +13,44 @@
     + checkingVotePower: @Dennis Kim
     + queryingResults @Dennis Kim
 
+
+## Contracts deployment:
++ **scripts/DK_DeployMyERC20Token.ts** to deploy the token as follows:
+```bash
+npx ts-node --files ./scripts/DK_DeployMyERC20Token.ts <ACCT1_ADDRESS> <ACCT2_ADDRESS>
+```
+
+*ACCT1_ADDRESS and ACCT2_ADDRESS are minted tokens*
+
+```bash
+...
+Deploying MyERC20Token contract...
+Contract deployment transaction hash: 0x6677b88c469b3d3dba7bb9783a49487463c86228c98b3adc78f1fe76267f46eb
+Waiting for confirmations...
+MyERC20 contract deployed to: 0x77ec5e6688e9e212feedfe08ea67ecd911bae5d9 
+...
+``` 
++ use **scripts/DK_DeployTokenizedBallot.ts** to deploy the ballot:
+
+```bash
+npx ts-node --files ./scripts/DK_DeployTokenizedBallot.ts "Proposal1" "Proposal2" "Proposal3" <TOKEN_ADDRESS>
+```
+*note the token address as parameter (0x77ec5e6688e9e212feedfe08ea67ecd911bae5d9)*
+```bash
+...
+ERC20 Token Contract Address: 0x77ec5e6688e9e212feedfe08ea67ecd911bae5d9
+...
+Deploying TokenizedBallot contract...
+Transaction hash: 0x7cd4d3e7c3be3f56dc86b26dabedbf278506d360b2a5641f7cec8d558e8114d8
+Waiting for confirmations...
+Ballot contract deployed to: 0xec6d02d7123c028b5dc4bad28abfdf6c9ab72757
+...
+Checking Deployer's voting rights...
+Deployer has 0 of voting tokens
+Deployer has delegated himself voting tokens
+Deployer has 90000000000000000000 of voting tokens
+```
+
 ## Getting Started
 Local copy setup:
 

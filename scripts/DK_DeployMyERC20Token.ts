@@ -12,6 +12,10 @@ import { sepolia } from "viem/chains";
 import * as dotenv from "dotenv";
 dotenv.config();
 
+// USAGE:
+// npx ts-node --files ./scripts/DK_DeployMyERC20Token.ts <ACCT1_ADDRESS> <ACCT2_ADDRESS>
+// ie: npx ts-node --files ./scripts/DK_DeployMyERC20Token.ts 0xA2A71645840E169111d1bbdE2dACC6E98A6C05B7 0x78E9e27509BA19CCA935962F9C9FBB80B175FC4B
+
 /// CONSTANTS
 const providerApiKey = process.env.ALCHEMY_API_KEY || "";
 const deployerPrivateKey = process.env.PRIVATE_KEY || "";
@@ -19,12 +23,21 @@ const MINT_VALUE = parseEther('90');
 
 /// MAIN FUNCTION
 async function main() {
+  // Get ACCT1 and ACCT2 addresses from command-line arguments
+  const args = process.argv.slice(2);
+  if (args.length < 2) {
+    throw new Error("Please provide ACCT1 and ACCT2 addresses as arguments");
+  }
+  const acct1PubAddress = args[0];
+  const acct2PubAddress = args[1];
+
   /// CREATE PUBLICCLIENT TO CONNECT TO SEPOLIA USING POKT GATEWAY
   console.log("Connecting to blockchain with publicClient...");
   const publicClient = createPublicClient({
     chain: sepolia,
     transport: http(`https://eth-sepolia.g.alchemy.com/v2/${providerApiKey}`),
   });
+
   /// - PROVIDE PROOF OF SUCCESSFUL PUBLICCLIENT CREATION
   const blockNumber = await publicClient.getBlockNumber();
   console.log("Last block number:", blockNumber, "\n");
@@ -37,8 +50,10 @@ async function main() {
     chain: sepolia,
     transport: http(`https://eth-sepolia.g.alchemy.com/v2/${providerApiKey}`),
   });
-  /// - LOG DEPLOYER ACCOUNT ADDRESS ON TESTNET
-  console.log("Deployer address:", deployer.account.address);
+  /// - LOG DEPLOYER ACCOUNT ADDRESS 
+  const deployerPubAddress = deployer.account.address;
+  console.log("Deployer address:", deployerPubAddress);
+
   /// - PROVIDE PROOF OF SUCCESSFUL WALLETCLIENT CREATION
   const balance = await publicClient.getBalance({
     address: deployer.account.address,
@@ -73,7 +88,7 @@ async function main() {
 
   /// MINT TOKENS FOR DEPLOYER
   console.log("Minting tokens for Deployer...");
-  const deployerPubAddress = "0x0165363e7595133D3a538f5dFD85E0b5cf15CF93";
+  //const deployerPubAddress = "0x0165363e7595133D3a538f5dFD85E0b5cf15CF93";
   const deployerMintTx = await deployer.writeContract({
     address: contractAddress,
     abi,
@@ -100,7 +115,7 @@ async function main() {
 
   /// MINT TOKENS FOR ACCT 1
   console.log("Minting tokens for Account 1...");
-  const acct1PubAddress = "0xA2A71645840E169111d1bbdE2dACC6E98A6C05B7";
+  // const acct1PubAddress = "0xA2A71645840E169111d1bbdE2dACC6E98A6C05B7";
   const acct1MintTx = await deployer.writeContract({
     address: contractAddress,
     abi,
@@ -128,7 +143,7 @@ async function main() {
 
   /// MINT TOKENS FOR ACCT 2
   console.log("Minting tokens for Account 2...");
-  const acct2PubAddress = "0x78E9e27509BA19CCA935962F9C9FBB80B175FC4B";
+  // const acct2PubAddress = "0x78E9e27509BA19CCA935962F9C9FBB80B175FC4B";
   const acct2MintTx = await deployer.writeContract({
     address: contractAddress,
     abi,
