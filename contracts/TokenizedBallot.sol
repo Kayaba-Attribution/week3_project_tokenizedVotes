@@ -35,9 +35,6 @@ contract TokenizedBallot {
     }
 
     function vote(uint256 proposal, uint256 amount) external {
-        // Check if the voting is still open
-        require(block.number < targetBlockNumber, "Voting is closed");
-
         // Get voting power
         uint256 votePower = getVotePower(msg.sender);
 
@@ -54,7 +51,7 @@ contract TokenizedBallot {
         address voter
     ) public view returns (uint256 votePower_) {
         // Get past votes at the target block number
-        votePower_ = tokenContract.getPastVotes(voter, targetBlockNumber);
+        votePower_ = tokenContract.getPastVotes(voter, targetBlockNumber - 1); // (-1) to Avoid ERC5805FutureLookup
 
         // Subtract the votes that have already been spent
         votePower_ -= spentVotePower[voter];

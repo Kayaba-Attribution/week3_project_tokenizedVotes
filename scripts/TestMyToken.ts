@@ -16,7 +16,7 @@ function cropAddress(address: string) {
 }
 
 async function main() {
-    // npx ts-node --files ./scripts/TestMyToken.ts
+
 
     // Deploying contracts to HRE using Viem
     const publicClient = await viem.getPublicClient();
