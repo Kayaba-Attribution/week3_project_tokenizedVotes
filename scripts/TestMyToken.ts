@@ -31,14 +31,14 @@ async function main() {
         `[Minted] ${MINT_VALUE.toString()} decimal units to account ${cropAddress(acc1.account.address)
         }\n`
     );
-    const balanceBN = await contract.read.balanceOf([acc1.account.address]);
+    const balanceBN = await contract.read.balanceOf([acc1.account.address]) as any;
     console.log(
         `[Tokens] Account ${cropAddress(acc1.account.address)
         } has ${balanceBN.toString()} decimal units of MyToken\n`
     );
 
     // Checking vote power
-    const votes = await contract.read.getVotes([acc1.account.address]);
+    const votes = await contract.read.getVotes([acc1.account.address]) as any;
     console.log(
         `[Votes] Account ${cropAddress(acc1.account.address)
         } has ${votes.toString()} units of voting power before self delegating\n`
@@ -49,7 +49,7 @@ async function main() {
         account: acc1.account,
     });
     await publicClient.waitForTransactionReceipt({ hash: delegateTx });
-    const votesAfter = await contract.read.getVotes([acc1.account.address]);
+    const votesAfter = await contract.read.getVotes([acc1.account.address]) as any;
     console.log(
         `[Votes] Account ${cropAddress(acc1.account.address)
         } has ${votesAfter.toString()} units of voting power after self delegating\n`
@@ -66,14 +66,14 @@ async function main() {
     await publicClient.waitForTransactionReceipt({ hash: transferTx });
     const votes1AfterTransfer = await contract.read.getVotes([
         acc1.account.address,
-    ]);
+    ]) as any;
     console.log(
         `[Votes] Account ${cropAddress(acc1.account.address)
         } has ${votes1AfterTransfer.toString()} units of voting power after transferring\n`
     );
     const votes2AfterTransfer = await contract.read.getVotes([
         acc2.account.address,
-    ]);
+    ]) as any;
     console.log(
         `[Votes] Account ${cropAddress(acc2.account.address)
         } has ${votes2AfterTransfer.toString()} units of voting power after receiving a transfer\n`
@@ -92,7 +92,7 @@ async function main() {
 
     const votes2AfterTransfer2 = await contract.read.getVotes([
         acc2.account.address,
-    ]);
+    ]) as any;
 
     console.log(
         `[Votes] Account ${cropAddress(acc2.account.address)
@@ -101,7 +101,7 @@ async function main() {
 
     const votes3AfterTransfer = await contract.read.getVotes([
         acc3.account.address,
-    ]);
+    ]) as any;
 
     console.log(
         `[Votes] Account ${cropAddress(acc3.account.address)
@@ -114,7 +114,7 @@ async function main() {
 
     await publicClient.waitForTransactionReceipt({ hash: delegateTx2 });
 
-    const votes3After = await contract.read.getVotes([acc3.account.address]);
+    const votes3After = await contract.read.getVotes([acc3.account.address]) as any;
 
     console.log(
         `[Votes] Account ${cropAddress(acc3.account.address)
@@ -127,7 +127,7 @@ async function main() {
         const pastVotes = await contract.read.getPastVotes([
             acc1.account.address,
             index,
-        ]);
+        ]) as any;
         console.log(
             `[Votes] Account ${cropAddress(acc1.account.address)
             } had ${pastVotes.toString()} units of voting power at block ${index}\n`

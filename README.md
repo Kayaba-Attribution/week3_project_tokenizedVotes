@@ -19,6 +19,7 @@ Local copy setup:
 ```bash
 git clone https://github.com/Kayaba-Attribution/week3_project_tokenizedVotes
 cd week3_project_tokenizedVotes
+npm install --save-dev @openzeppelin/contracts
 npm i
 npm run compile
 ```

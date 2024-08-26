@@ -2,72 +2,78 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 interface IMyToken {
-    function getPastVotes(address, uint256) external view returns (uint256);
+	function getPastVotes(address, uint256) external view returns (uint256);
 }
 
 contract TokenizedBallot {
-    struct Proposal {
-        bytes32 name;
-        uint voteCount;
-    }
+	struct Voter {
+		uint weight;
+		bool voted;
+		address delegate;
+		uint vote;
+	}
 
-    IMyToken public tokenContract;
-    Proposal[] public proposals;
-    uint256 public targetBlockNumber;
-    mapping(address => uint256) public spentVotePower;
+	struct Proposal {
+		bytes32 name;
+		uint voteCount;
+	}
 
-    constructor(
-        bytes32[] memory _proposalNames,
-        address _tokenContract,
-        uint256 _targetBlockNumber
-    ) {
-        tokenContract = IMyToken(_tokenContract);
-        targetBlockNumber = _targetBlockNumber;
+	IMyToken public tokenContract;
+	Proposal[] public proposals;
+	uint256 public targetBlockNumber;
+	mapping(address => uint256) public spentVotePower;
 
-        require(
-            targetBlockNumber > block.number,
-            "Target block must be in the future"
-        );
+	constructor(
+			bytes32[] memory _proposalNames,
+			address _tokenContract,
+			uint256 _targetBlockNumber
+	) {
+		tokenContract = IMyToken(_tokenContract);
+		targetBlockNumber = _targetBlockNumber;
+		
+		// TODO: Validate if targetBlockNumber is in the past
+		require(targetBlockNumber <= block.number, "TokenizedBallot.sol: targetBlockNumber must be before block.number");
 
-        for (uint i = 0; i < _proposalNames.length; i++) {
-            proposals.push(Proposal({name: _proposalNames[i], voteCount: 0}));
-        }
-    }
+		for (uint i=0; i< _proposalNames.length; i++){
+			proposals.push(Proposal({name: _proposalNames[i], voteCount: 0}));
+		}
+	}
 
-    function vote(uint256 proposal, uint256 amount) external {
-        // Get voting power
-        uint256 votePower = getVotePower(msg.sender);
+	function vote(uint256 proposal, uint256 amount) external {
+		// Get voting power
+		uint256 votePower = getVotePower(msg.sender);
 
-        // Verify that the sender has enough voting power
-        require(
-            votePower >= amount,
-            "TokenizedBallot: Insufficient voting power"
-        );
-        spentVotePower[msg.sender] += amount;
-        proposals[proposal].voteCount += amount;
-    }
+		// Verify that the sender has enough voting power
+		require(
+				votePower >= amount,
+				"TokenizedBallot: Insufficient voting power"
+		);
+		spentVotePower[msg.sender] += amount;
+		proposals[proposal].voteCount += amount;
+}
 
-    function getVotePower(
-        address voter
-    ) public view returns (uint256 votePower_) {
-        // Get past votes at the target block number
-        votePower_ = tokenContract.getPastVotes(voter, targetBlockNumber - 1); // (-1) to Avoid ERC5805FutureLookup
+	function getVotePower(
+		address voter
+	) public view returns (uint256 votePower_) {
+		// Get past votes at the target block number
+		// (-1) to Avoid ERC5805FutureLookup
+		votePower_ = tokenContract.getPastVotes(voter, targetBlockNumber - 1); 
 
-        // Subtract the votes that have already been spent
-        votePower_ -= spentVotePower[voter];
-    }
+		// Subtract the votes that have already been spent
+		votePower_ -= spentVotePower[voter];
+	}
 
-    function winningProposal() public view returns (uint winningProposal_) {
-        uint winningVoteCount = 0;
-        for (uint p = 0; p < proposals.length; p++) {
-            if (proposals[p].voteCount > winningVoteCount) {
-                winningVoteCount = proposals[p].voteCount;
-                winningProposal_ = p;
-            }
-        }
-    }
+	function winningProposal() public view returns (uint winningProposal_) {
+		uint winningVoteCount = 0;
+		for (uint p = 0; p < proposals.length; p++) {
+			if (proposals[p].voteCount > winningVoteCount) {
+				winningVoteCount = proposals[p].voteCount;
+				winningProposal_ = p;
+			}
+		}
+	}
 
-    function winnerName() external view returns (bytes32 winnerName_) {
-        winnerName_ = proposals[winningProposal()].name;
-    }
+	function winnerName() external view returns (bytes32 winnerName_){
+		winnerName_ = proposals[winningProposal()].name;
+	}
 }
